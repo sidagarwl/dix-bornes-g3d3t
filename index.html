@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Nehu's Dix Bornes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800&family=Caveat:wght@600;700&family=Figtree:wght@400;600&display=swap">
+<style>
+/* Layout: one-screen side-scrolling stage. Title card is a race bib, HUD is course signage,
+   notes are cardboard pancartes. The tie-dye spectrum is the only saturated colour. */
+:root{
+  color-scheme: light;
+  --ink:#182033; --ink-soft:#4b566c; --bib:#fbfcfe; --line:#d3dae6; --mist:#e7edf6;
+  --kraft:#d9b98b; --kraft-ink:#2a2018;
+  --g:#19b36b; --y:#f2d21b; --o:#ff8a1f; --p:#ff3d7f; --v:#8a3ffc;
+  --spectrum:linear-gradient(90deg,var(--g),var(--y),var(--o),var(--p),var(--v));
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --hand:'Caveat','Bradley Hand','Segoe Print',cursive;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ink);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+#app{position:relative;height:100%;max-width:860px;margin:0 auto;overflow:hidden;background:#7ea6d8;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* HUD */
+.hud{position:absolute;inset:0 0 auto 0;padding-block:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;touch-action:none;pointer-events:none}
+.plate{background:var(--bib);color:var(--ink);border-radius:6px;padding:6px 10px 8px;box-shadow:0 3px 0 rgba(24,32,51,.25)}
+.km{display:flex;align-items:baseline;gap:6px;font-family:var(--display);font-weight:800;line-height:1}
+.km small{font-size:13px;letter-spacing:.12em;color:var(--ink-soft);font-weight:600}
+.km b{font-size:34px;font-variant-numeric:tabular-nums}
+.ticks{display:flex;gap:3px;margin-top:6px}
+.ticks i{width:13px;height:6px;border-radius:2px;background:var(--line)}
+.ticks i.done{background:var(--ink-soft)}
+.ticks i.flow{background:var(--spectrum)}
+.ticks i.now{outline:2px solid var(--ink);outline-offset:1px}
+.snd{pointer-events:auto;font:600 13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);
+  background:var(--bib);border:0;border-radius:6px;padding:10px 12px;box-shadow:0 3px 0 rgba(24,32,51,.25);cursor:pointer}
+
+/* pancarte */
+.note{position:absolute;top:92px;left:0;right:0;pointer-events:none;display:flex;justify-content:flex-start}
+.note > div{max-width:400px;background:var(--kraft);color:var(--kraft-ink);padding:10px 16px 12px;border-radius:3px;
+  box-shadow:0 5px 0 rgba(24,32,51,.28);transform:rotate(-1.4deg) translateY(-14px);opacity:0;transition:opacity .35s,transform .35s}
+.note.show > div{opacity:1;transform:rotate(-1.4deg) translateY(0)}
+.note span{display:block;font:600 12px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-bottom:4px}
+.note p{margin:0;font:700 23px/1.12 var(--hand);text-wrap:balance}
+
+/* controls */
+.controls{position:absolute;inset:auto 0 0 0;padding-block:12px 14px;background:rgba(24,32,51,.9);color:#fff;touch-action:none;display:grid;gap:9px}
+.status{display:flex;justify-content:space-between;align-items:center;gap:12px;font:600 14px/1.1 var(--display);letter-spacing:.1em;text-transform:uppercase;min-height:16px}
+.status #state{min-width:0}
+.breath{display:flex;align-items:center;gap:8px;color:#b9c4d8;white-space:nowrap}
+.breath i{display:block;width:72px;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.breath b{display:block;height:100%;width:100%;background:#fff;border-radius:3px}
+.breath.low b{background:var(--p)}
+.meter{position:relative;height:26px;border-radius:13px;background:rgba(255,255,255,.14)}
+#band{position:absolute;top:0;bottom:0;border-radius:13px;background:var(--spectrum)}
+#marker{position:absolute;top:-5px;width:6px;height:36px;margin-left:-3px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px var(--ink)}
+.ends{display:flex;justify-content:space-between;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:#9aa7be}
+#pad{height:54px;border:0;border-radius:10px;background:var(--bib);color:var(--ink);font:800 22px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;touch-action:none}
+.holding #pad{background:var(--y)}
+button:focus-visible{outline:3px solid var(--y);outline-offset:2px}
+
+/* sheets */
+.sheet{position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding-block:20px;touch-action:pan-y}
+#title{justify-content:space-between;gap:16px}
+.head{color:var(--ink)}
+.head .eyebrow{font:600 13px/1.2 var(--display);letter-spacing:.14em;text-transform:uppercase;margin:0 0 4px}
+.head h1{margin:0;font:italic 800 clamp(60px,19vw,112px)/.84 var(--display);letter-spacing:-.01em;text-transform:uppercase}
+.head p.for{margin:6px 0 0;font:700 26px/1 var(--hand)}
+#bib{position:relative;width:100%;max-width:440px;background:var(--bib);border-radius:10px;padding:0 16px 16px;box-shadow:0 6px 0 rgba(24,32,51,.3);overflow:hidden}
+#bib .strip{margin:0 -16px;padding:8px 16px;background:var(--ink);color:#fff;display:flex;justify-content:space-between;gap:10px;font:600 12px/1.2 var(--display);letter-spacing:.14em;text-transform:uppercase;border-bottom:5px solid transparent;border-image:var(--spectrum) 1}
+#bib .num{display:flex;align-items:flex-end;gap:14px;padding-block:8px 6px;border-bottom:1px solid var(--line)}
+#bib .num b{font:800 84px/.8 var(--display);font-variant-numeric:tabular-nums}
+#bib .num span{font:800 34px/.9 var(--display);letter-spacing:.04em;text-transform:uppercase;padding-bottom:2px}
+#bib .num small{display:block;font:600 12px/1.2 var(--display);letter-spacing:.14em;color:var(--ink-soft)}
+#bib p{margin:10px 0 0;color:var(--ink);max-width:60ch}
+#bib p.from{font:700 20px/1.1 var(--hand);color:var(--ink-soft);margin-top:10px}
+.go{margin-top:12px;width:100%;height:52px;border:0;border-radius:10px;background:var(--ink);color:#fff;font:800 22px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-bottom:5px solid transparent;border-image:var(--spectrum) 1}
+
+#finish{background:rgba(24,32,51,.95);color:#fff;-webkit-user-select:text;user-select:text}
+.fin{width:100%;max-width:480px;display:grid;gap:14px}
+.medal{display:flex;flex-direction:column;align-items:flex-start;margin-left:6px}
+.medal .ribbon{width:46px;height:54px;margin-left:36px;background:linear-gradient(90deg,var(--g) 0 20%,var(--y) 20% 40%,var(--o) 40% 60%,var(--p) 60% 80%,var(--v) 80%)}
+.medal .disc{width:118px;height:118px;border-radius:50%;background:var(--spectrum);padding:7px;margin-top:-6px}
+.medal .disc div{width:100%;height:100%;border-radius:50%;background:var(--ink);display:grid;place-content:center;text-align:center;font-family:var(--display);text-transform:uppercase;line-height:1}
+.medal .disc b{font-size:34px;font-weight:800}
+.medal .disc span{font-size:12px;letter-spacing:.16em;font-weight:600;color:#b9c4d8;margin-top:4px}
+.fin h2{margin:0;font:italic 800 64px/.85 var(--display);text-transform:uppercase}
+.fin h3{margin:8px 0 0;font:600 13px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#b9c4d8}
+.fin p{margin:0;max-width:60ch;color:#e3e9f3}
+.fin .ticks i{width:22px;height:8px;background:rgba(255,255,255,.18)}
+.fin .ticks i.done{background:rgba(255,255,255,.45)}
+.fin .ticks i.flow{background:var(--spectrum)}
+#pancartes{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#pancartes li{background:var(--kraft);color:var(--kraft-ink);padding:9px 14px 11px;border-radius:3px;font:700 21px/1.14 var(--hand)}
+#pancartes li:nth-child(odd){transform:rotate(-.6deg)}
+#pancartes li:nth-child(even){transform:rotate(.5deg)}
+#pancartes span{display:block;font:600 11px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-bottom:3px}
+.fin p.next{font:700 23px/1.15 var(--hand);color:#fff}
+.fin .go{background:var(--bib);color:var(--ink)}
+@media (min-height:760px){.note{top:100px}}
+@media (prefers-reduced-motion:reduce){.note > div{transition:none}}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <canvas id="scene" aria-label="Side view of a runner in a rainbow tee on a Paris street"></canvas>
+
+  <div class="hud gut" id="hud" hidden>
+    <div class="plate">
+      <div class="km"><small>KM</small><b id="kmNum">1</b><small>/ 10</small></div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+    <button class="snd" id="snd" type="button" aria-pressed="true">Son on</button>
+  </div>
+
+  <div class="note gut" id="note" aria-live="polite"><div><span id="noteTag">Pancarte</span><p id="noteText"></p></div></div>
+
+  <div class="controls gut" id="controls" hidden>
+    <div class="status"><span id="state">Hold to push. Let go to ease off.</span>
+      <span class="breath" id="breath">Souffle <i><b id="breathFill"></b></i></span></div>
+    <div class="meter" aria-hidden="true"><div id="band"></div><div id="marker"></div></div>
+    <div class="ends" aria-hidden="true"><span>Easy</span><span>All out</span></div>
+    <button id="pad" type="button">Hold to push</button>
+  </div>
+
+  <section class="sheet gut" id="title">
+    <div class="head">
+      <p class="eyebrow">10 km Paris Centre · dimanche 15 novembre</p>
+      <h1>Dix Bornes</h1>
+      <p class="for">pour Nehu</p>
+    </div>
+    <div id="bib">
+      <div class="strip"><span>Dossard</span><span>Rue de Rivoli → Avenue de l'Opéra</span></div>
+      <div class="num"><b>27</b><span>Nehu<small>Départ 9h00</small></span></div>
+      <p>Hold to push, let go to ease off. Keep your effort inside the rainbow and the kilometre counts as flow. Ten pancartes are waiting along the road.</p>
+      <button class="go" id="start" type="button">Départ</button>
+      <p class="from">From Munchu, about 6,600 km east.</p>
+    </div>
+  </section>
+
+  <section class="sheet gut" id="finish" hidden>
+    <div class="fin">
+      <div class="medal" aria-hidden="true"><div class="ribbon"></div><div class="disc"><div><b>10 KM</b><span>Nehu · Paris</span></div></div></div>
+      <h2>Finisher.</h2>
+      <p id="flowLine"></p>
+      <div class="ticks" id="finTicks"></div>
+      <p>Chrono: the real one is yours to tell me. Call me.</p>
+      <h3>Les pancartes</h3>
+      <ol id="pancartes"></ol>
+      <p class="next">Next start line is mine. 21.1 km in New Delhi, the one you signed me up for. Save me a pancarte.</p>
+      <button class="go" id="again" type="button">Run it again</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+// ---- The ten pancartes. Edit the text freely; one per kilometre, in order. ----
+const NOTES = [
+  ["Doucement!",   "Everyone is sprinting down Rivoli. Let them go, Nehu. Your race starts at km 7."],
+  ["Cette photo",  "Rainbow tee, fur jacket, one leg in the air outside the Louvre. I've looked at that photo more times than I'll admit."],
+  ["Hasta reh",    "Khayal rakh. Mast reh. Hasta reh. Your words. Giving them back to you today."],
+  ["6 600 km",     "Gurugram to Paris is about 6,600 km. You only have to run ten of them. I'd do the rest if I could."],
+  ["Ravito!",      "Almost halfway. Water is coming. Sip, don't gulp, pyaar."],
+  ["Mon tour",     "You signed me up for my first half marathon. So today it's my turn to be the loud one on the sidewalk."],
+  ["Chalo Nehu!",  "This is where it gets noisy in your head. I'm noisier. CHALO NEHU!"],
+  ["Je suis là",   "It's afternoon in Gurugram and I'm getting nothing done. I'm just here, thinking of you running."],
+  ["Tu doubles!",  "Look around. You're passing the ones who went out too fast. Told you."],
+  ["Tout donner",  "Avenue de l'Opéra. Empty the tank. I'm at the finish of every race you'll ever run. Your Munchu."]
+];
+// band centre / half-width per kilometre (effort 0..1)
+const BAND = [[.32,.14],[.42,.135],[.5,.13],[.55,.125],[.5,.13],[.55,.12],[.6,.105],[.62,.09],[.6,.105],[.68,.12]];
+
+const $ = id => document.getElementById(id);
+const app = $('app'), cv = $('scene'), ctx = cv.getContext('2d');
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const h1 = n => { const x = Math.sin(n*127.1+311.7)*43758.5453; return x - Math.floor(x); };
+const hex = c => [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
+const mix = (a,b,t) => { const A=hex(a),B=hex(b); return `rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')})`; };
+const SPEC = ['#19b36b','#f2d21b','#ff8a1f','#ff3d7f','#8a3ffc'];
+const PXKM = 3600, V0 = PXKM/14;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let W = 0, H = 0, DPR = 1;
+const S = { mode:'title', t:0, gy:300 };
+function reset(){
+  Object.assign(S, { dist:0, e:.3, breath:1, hold:false, phase:0, c:.32, w:.14, km:0, kmIn:0, kmT:0, flow:[],
+    stitch:0, cheer:0, noteIdx:0, finT:0, shown:false, speedF:1, conf:[], toast:'', toastT:0, zone:'in', lo:.2, hi:.45 });
+  S.npc = [];
+  for (let i=0;i<16;i++) S.npc.push({ wx:-240+h1(i+3)*760, sp:1.1+h1(i+40)*.24, dy:-16+h1(i+80)*44, ph:h1(i)*6, seed:i, live:true });
+  for (let i=0;i<15;i++) S.npc.push({ wx:(6.1+h1(i+140)*3.3)*PXKM, sp:.7+h1(i+170)*.16, dy:-16+h1(i+200)*44, ph:h1(i+9)*6, seed:i+20, live:false });
+}
+reset();
+
+// ---- far skyline (generated once) ----
+const far = [];
+(() => { let x = -60, i = 0;
+  while (x < 12500) { const w = 74+h1(i)*84, h = 62+h1(i+500)*46;
+    far.push({ x, w, h, fl:3+Math.floor(h1(i+900)*2), ch:h1(i+1300), tone:mix('#d8cfbf','#c3baab',h1(i+1700)) });
+    x += w + (h1(i+2100) < .16 ? 12 : 0); i++; } })();
+
+// ---- sound ----
+let ac = null, muted = false;
+function tone(f, d, type, g, f2){
+  if (!ac || muted) return;
+  const o = ac.createOscillator(), a = ac.createGain(), n = ac.currentTime;
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, n);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, n+d);
+  a.gain.setValueAtTime(g || .05, n); a.gain.exponentialRampToValueAtTime(.0001, n+d);
+  o.connect(a); a.connect(ac.destination); o.start(n); o.stop(n+d+.03);
+}
+const chime = () => { tone(660,.2,'triangle',.05); setTimeout(()=>tone(880,.3,'triangle',.05),130); };
+
+// ---- DOM ----
+const el = { km:$('kmNum'), ticks:$('ticks'), band:$('band'), marker:$('marker'), state:$('state'), breath:$('breath'),
+  bf:$('breathFill'), note:$('note'), noteTag:$('noteTag'), noteText:$('noteText') };
+function renderTicks(into){
+  const k = Math.min(9, Math.floor(S.dist)); let h = '';
+  for (let i=0;i<10;i++){ const done = i < S.flow.length;
+    h += `<i class="${done ? (S.flow[i] ? 'flow' : 'done') : ''}${!into && i===k && S.mode==='run' ? ' now' : ''}"></i>`; }
+  (into || el.ticks).innerHTML = h;
+}
+$('pancartes').innerHTML = NOTES.map((n,i)=>`<li><span>Pancarte ${i+1}</span>${n[1]}</li>`).join('');
+let noteTimer = 0;
+function showNote(i){
+  el.noteTag.textContent = `Pancarte ${i+1} / 10`; el.noteText.textContent = NOTES[i][1];
+  el.note.classList.add('show'); clearTimeout(noteTimer);
+  noteTimer = setTimeout(()=>el.note.classList.remove('show'), 7200); chime();
+}
+function toast(t){ S.toast = t; S.toastT = 3.6; }
+
+function start(){
+  reset(); S.mode = 'run';
+  $('title').hidden = true; $('finish').hidden = true; $('hud').hidden = false; $('controls').hidden = false;
+  el.note.classList.remove('show'); renderTicks(); toast('Hold to push. Let go to ease off.');
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
+}
+function finish(){
+  S.flow[9] = S.kmT > 0 && S.kmIn/S.kmT >= .55; S.mode = 'fin'; S.finT = 0; S.hold = false; app.classList.remove('holding');
+  renderTicks();
+  if (!reduce) for (let i=0;i<110;i++) S.conf.push({ x:Math.random()*W, y:-20-Math.random()*H*.5, vx:(Math.random()-.5)*60, vy:90+Math.random()*120, r:Math.random()*6, c:SPEC[i%5], s:4+Math.random()*5 });
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.35,'triangle',.06), i*140));
+}
+function showFinish(){
+  const n = S.flow.filter(Boolean).length;
+  $('flowLine').textContent = n === 10 ? 'All ten kilometres in the flow. Of course.' :
+    `${n} of 10 kilometre${n===1?'':'s'} in the flow. The other ${10-n===1?'one':10-n} you ran on heart.`;
+  renderTicks($('finTicks')); el.note.classList.remove('show');
+  $('hud').hidden = true; $('controls').hidden = true; $('finish').hidden = false; $('finish').scrollTop = 0;
+}
+$('start').addEventListener('click', start);
+$('again').addEventListener('click', start);
+$('snd').addEventListener('click', e => { muted = !muted; e.currentTarget.textContent = muted ? 'Son off' : 'Son on'; e.currentTarget.setAttribute('aria-pressed', String(!muted)); });
+
+const setHold = v => { if (S.mode !== 'run') v = false; S.hold = v; app.classList.toggle('holding', v); };
+app.addEventListener('pointerdown', e => { if (S.mode !== 'run') return; const b = e.target.closest('button'); if (b && b.id !== 'pad') return; e.preventDefault(); setHold(true); });
+addEventListener('pointerup', () => setHold(false)); addEventListener('pointercancel', () => setHold(false)); addEventListener('blur', () => setHold(false));
+app.addEventListener('contextmenu', e => { if (S.mode === 'run') e.preventDefault(); });
+addEventListener('keydown', e => { if (S.mode === 'run' && (e.code === 'Space' || e.code === 'ArrowUp')) { e.preventDefault(); if (!e.repeat) setHold(true); } });
+addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowUp') setHold(false); });
+
+// ---- simulation ----
+function step(dt){
+  S.t += dt;
+  if (S.toastT > 0) S.toastT -= dt;
+  if (S.mode === 'run'){
+    const sprint = S.dist >= 9.6, k = Math.min(9, Math.floor(S.dist));
+    if (S.stitch > 0){ S.stitch -= dt; S.e = Math.max(.12, S.e - .9*dt); if (S.stitch <= 0) S.breath = .45; }
+    else S.e = clamp(S.e + (S.hold ? .5 : -.42)*dt, 0, 1);
+    let tc = BAND[k][0], tw = BAND[k][1];
+    if (sprint){ tc = .86; tw = .14; }
+    if (S.cheer > 0){ S.cheer -= dt; tw += .035; }
+    S.c += (tc - S.c)*Math.min(1, dt*1.2); S.w += (tw - S.w)*Math.min(1, dt*1.2);
+    const wob = sprint ? 0 : (k === 7 ? 1.6 : 1)*(.045*Math.sin(S.t*.8) + .025*Math.sin(S.t*2.1+1));
+    const lo = S.c + wob - S.w, hi = Math.min(1.02, S.c + wob + S.w);
+    S.lo = lo; S.hi = hi;
+    const zone = S.stitch > 0 ? 'stitch' : S.e < lo ? 'low' : S.e > hi ? 'high' : 'in';
+    S.zone = zone; let f;
+    if (zone === 'stitch') f = .5;
+    else if (zone === 'in'){ f = sprint ? 1.05 + .2*S.e : 1; S.breath = Math.min(1, S.breath + .05*dt); }
+    else if (zone === 'low'){ f = .68 + .3*(S.e/Math.max(.01, lo)); S.breath = Math.min(1, S.breath + .11*dt); }
+    else { f = 1.1; S.breath -= dt*(.16 + .5*(S.e - hi));
+      if (S.breath <= 0){ S.breath = 0; S.stitch = 2.4; toast('Point de côté. Walk it off, breathe.'); } }
+    S.speedF += (f - S.speedF)*Math.min(1, dt*4);
+    S.dist += S.speedF*V0*dt/PXKM; S.kmT += dt; if (zone === 'in') S.kmIn += dt;
+    const nk = Math.floor(S.dist);
+    if (nk > S.km && nk < 10){ S.flow[S.km] = S.kmIn/S.kmT >= .55; S.km = nk; S.kmIn = 0; S.kmT = 0; renderTicks();
+      if (nk === 5){ S.breath = 1; toast('Ravito. Souffle refilled.'); } }
+    if (S.noteIdx < NOTES.length && S.dist >= S.noteIdx + .5){ showNote(S.noteIdx); S.noteIdx++; S.cheer = 6; }
+    const p0 = Math.floor(S.phase/Math.PI); S.phase += dt*(4 + 5.2*S.speedF);
+    if (Math.floor(S.phase/Math.PI) !== p0) tone(95, .07, 'sine', .03, 50);
+    if (S.dist >= 10) finish();
+  } else if (S.mode === 'fin'){
+    S.finT += dt; S.speedF = Math.max(0, 1 - S.finT/2.2);
+    S.dist += S.speedF*V0*dt/PXKM*.8; S.phase += dt*(2 + 6*S.speedF);
+    if (S.finT > 2.7 && !S.shown){ S.shown = true; showFinish(); }
+  }
+  for (const n of S.npc){
+    if (!n.live){ if (n.wx - S.dist*PXKM < W + 260) n.live = true; else continue; }
+    if (S.mode !== 'title'){ n.wx += n.sp*V0*dt; n.ph += dt*(4 + 5.2*n.sp); }
+  }
+  for (const c of S.conf){ c.x += c.vx*dt; c.y += c.vy*dt; c.r += dt*4; }
+  const bottom = S.mode === 'title' ? $('bib').offsetHeight + 30 : S.mode === 'run' || !S.shown ? ($('controls').offsetHeight || 156) : 156;
+  const tg = Math.max(190, H - bottom - 88);
+  S.gy += (tg - S.gy)*Math.min(1, dt*5);
+}
+
+function hudSync(){
+  if (S.mode === 'title') return;
+  el.km.textContent = Math.min(10, Math.floor(S.dist) + 1);
+  el.band.style.left = clamp(S.lo,0,1)*100 + '%'; el.band.style.width = (clamp(S.hi,0,1) - clamp(S.lo,0,1))*100 + '%';
+  el.marker.style.left = S.e*100 + '%'; el.bf.style.width = S.breath*100 + '%';
+  el.breath.classList.toggle('low', S.breath < .3);
+  const sprint = S.dist >= 9.6;
+  const label = S.toastT > 0 ? S.toast : S.zone === 'stitch' ? 'Point de côté. Walk it off.' :
+    S.zone === 'in' ? (sprint ? 'Tout donner!' : 'In the flow') : S.zone === 'low' ? (sprint ? 'Now. Everything.' : 'Pick it up a little') : 'Too hot. Ease off.';
+  if (el.state.textContent !== label) el.state.textContent = label;
+}
+
+// ---- drawing ----
+function runner(x, y, ph, sc, pal, pose){
+  ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
+  if (!pose) ctx.translate(0, -Math.abs(Math.sin(ph))*5);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const lean = pose ? .02 : .16, hx = 0, hy = -46, sx = hx + Math.sin(lean)*34, sy = hy - Math.cos(lean)*34;
+  const leg = (off, back) => {
+    let a, fl; const th = ph + off;
+    if (pose === 'kick'){ a = back ? -.12 : .04; fl = back ? 1.95 : .02; }
+    else if (pose === 'up'){ a = Math.sin(th)*.5; fl = .2 + .6*Math.max(0, Math.sin(th - 1.25*Math.PI)); }
+    else { a = Math.sin(th)*.8; fl = .25 + 1.15*Math.max(0, Math.sin(th - 1.25*Math.PI)); }
+    const kx = hx + Math.sin(a)*24, ky = hy + Math.cos(a)*24, b = a - fl, fx = kx + Math.sin(b)*23, fy = ky + Math.cos(b)*23;
+    ctx.strokeStyle = pal.leg; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(kx,ky); ctx.lineTo(fx,fy); ctx.stroke();
+    ctx.strokeStyle = pal.shoe; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx + Math.cos(b)*9, fy - Math.sin(b)*9); ctx.stroke();
+  };
+  const arm = (off) => {
+    let a, b; const th = ph + off;
+    if (pose === 'kick'){ a = off ? 2.5 : 2.2; b = a + .3; }
+    else if (pose === 'up'){ a = 2.55 + Math.sin(S.t*9 + off)*.18; b = a + .25; }
+    else { a = Math.sin(th)*.75; b = a + 1.45; }
+    const ex = sx + Math.sin(a)*15, ey = sy + 3 + Math.cos(a)*15, wx = ex + Math.sin(b)*15, wy = ey + Math.cos(b)*15;
+    ctx.strokeStyle = pal.skin; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(sx, sy+3); ctx.lineTo(ex,ey); ctx.lineTo(wx,wy); ctx.stroke();
+  };
+  arm(0); leg(Math.PI, true);
+  if (pal.tee) ctx.strokeStyle = pal.tee;
+  else { const g = ctx.createLinearGradient(sx, sy-6, hx, hy+4);
+    g.addColorStop(0,'#8a3ffc'); g.addColorStop(.28,'#ff3d7f'); g.addColorStop(.5,'#ff8a1f'); g.addColorStop(.68,'#f2d21b'); g.addColorStop(.86,'#19b36b'); g.addColorStop(1,'#2f8fe8');
+    ctx.strokeStyle = g; }
+  ctx.lineWidth = 17; ctx.beginPath(); ctx.moveTo(hx, hy-2); ctx.lineTo(sx, sy+4); ctx.stroke();
+  if (pal.bib){ ctx.save(); ctx.translate((hx+sx)/2 + 2, (hy+sy)/2 + 2); ctx.rotate(lean); ctx.fillStyle = '#fff'; ctx.fillRect(-6,-5,12,10);
+    ctx.fillStyle = '#182033'; ctx.font = '800 8px "Barlow Condensed",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('27', 0, .5); ctx.restore(); }
+  const cx = sx + Math.sin(lean)*13 + 1, cy = sy - 12;
+  ctx.fillStyle = pal.skin; ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 7); ctx.fill();
+  ctx.fillStyle = pal.hair; ctx.beginPath(); ctx.arc(cx-1, cy-1.5, 9.6, Math.PI*.82, Math.PI*1.92); ctx.fill();
+  if (pal.tail){ const sw = pose ? Math.sin(S.t*2)*2 : -Math.sin(ph*2)*6; ctx.strokeStyle = pal.hair; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(cx-8, cy-3); ctx.quadraticCurveTo(cx-19, cy+2+sw*.4, cx-17, cy+15+sw); ctx.stroke(); }
+  leg(0, false); arm(Math.PI);
+  ctx.restore();
+}
+const NEHU = { leg:'#1f2740', shoe:'#ffffff', skin:'#b87b58', hair:'#1b1411', bib:true, tail:true };
+const TEES = ['#6b7a8f','#8b9099','#3f4c66','#a59d92','#5b677c','#7d6c6c','#c9c5bd'], SKINS = ['#e0b796','#c98f6b','#8e5d43','#f0cdb0'];
+const npcPal = s => ({ leg:'#2b3040', shoe:'#d5d5d5', skin:SKINS[s%4], hair:['#2a211c','#5b4636','#1b1411','#8a6a45'][s%4], tee:TEES[s%7], tail:s%3===0 });
+
+function haussmann(b, x){
+  ctx.fillStyle = b.tone; ctx.fillRect(x, -b.h, b.w+1, b.h);
+  ctx.fillStyle = '#6d7a8c'; ctx.beginPath(); ctx.moveTo(x-2,-b.h); ctx.lineTo(x+5,-b.h-15); ctx.lineTo(x+b.w-5,-b.h-15); ctx.lineTo(x+b.w+2,-b.h); ctx.fill();
+  ctx.fillStyle = '#b68b6c'; const cxp = x + 8 + b.ch*(b.w-34); ctx.fillRect(cxp, -b.h-24, 12, 10); ctx.fillRect(cxp+1,-b.h-28,3,4); ctx.fillRect(cxp+7,-b.h-28,3,4);
+  ctx.fillStyle = 'rgba(58,64,84,.36)'; const cols = Math.floor((b.w-12)/16), rh = (b.h-12)/b.fl;
+  for (let r=0;r<b.fl;r++) for (let c=0;c<cols;c++) ctx.fillRect(x+8+c*16, -b.h+8+r*rh, 7, Math.min(13, rh-6));
+  ctx.fillStyle = 'rgba(58,64,84,.3)'; ctx.fillRect(x, -b.h+8+rh-3, b.w, 1.5);
+}
+function louvre(x){
+  const w = 210; ctx.fillStyle = '#cfc5b4'; ctx.fillRect(x-190, -80, w+380, 80);
+  ctx.fillStyle = '#65728a'; ctx.fillRect(x-190, -94, w+380, 14);
+  for (let i=0;i<10;i++){ const dx = x-176 + i*((w+352)/9.4); if (dx > x+20 && dx < x+w-34) continue; ctx.fillStyle = '#cfc5b4'; ctx.fillRect(dx,-104,12,12); ctx.fillStyle='#65728a'; ctx.fillRect(dx-1,-107,14,4); }
+  ctx.fillStyle = 'rgba(58,64,84,.36)'; for (let i=0;i<22;i++){ const dx = x-180 + i*26.5; if (dx > x+26 && dx < x+w-40) continue; ctx.fillRect(dx,-66,9,18); ctx.fillRect(dx,-36,9,20); }
+  ctx.fillStyle = '#d4cab9'; ctx.fillRect(x+36, -124, w-72, 124);
+  ctx.fillStyle = '#5f6b7c'; ctx.beginPath(); ctx.moveTo(x+32,-124); ctx.quadraticCurveTo(x+48,-150,x+68,-176); ctx.lineTo(x+w-68,-176); ctx.quadraticCurveTo(x+w-48,-150,x+w-32,-124); ctx.fill();
+  ctx.fillRect(x+66,-181,w-132,5); ctx.fillStyle = '#d4cab9'; ctx.fillRect(x+52,-146,10,22); ctx.fillRect(x+w-62,-146,10,22);
+  ctx.fillStyle = '#c3b9a8'; ctx.beginPath(); ctx.moveTo(x+50,-124); ctx.lineTo(x+w/2,-142); ctx.lineTo(x+w-50,-124); ctx.fill();
+  ctx.fillStyle = 'rgba(58,64,84,.42)';
+  for (let i=0;i<3;i++){ const ax = x+58+i*((w-116-22)/2); ctx.beginPath(); ctx.moveTo(ax,-70); ctx.lineTo(ax,-98); ctx.arc(ax+11,-98,11,Math.PI,0); ctx.lineTo(ax+22,-70); ctx.fill(); ctx.fillRect(ax,-52,22,52*.6); }
+}
+function opera(x){
+  const w = 250; ctx.fillStyle = '#d2c8b6'; ctx.fillRect(x, -88, w, 88);
+  ctx.fillStyle = '#bfb5a3'; ctx.fillRect(x-6, -34, w+12, 34); ctx.fillStyle = 'rgba(58,64,84,.42)';
+  for (let i=0;i<7;i++){ const ax = x+16+i*((w-32-20)/6); ctx.beginPath(); ctx.moveTo(ax,0); ctx.lineTo(ax,-16); ctx.arc(ax+10,-16,10,Math.PI,0); ctx.lineTo(ax+20,0); ctx.fill(); }
+  ctx.fillStyle = 'rgba(58,64,84,.3)'; ctx.fillRect(x+10,-78,w-20,40); ctx.fillStyle = '#e4dccb';
+  for (let i=0;i<16;i++) ctx.fillRect(x+13+i*((w-32)/15), -78, 5, 40);
+  ctx.fillStyle = '#c8bead'; ctx.fillRect(x-4,-96,w+8,10); ctx.fillRect(x+30,-112,w-60,18);
+  ctx.fillStyle = '#7fae9c'; ctx.beginPath(); ctx.ellipse(x+w/2,-112,74,44,0,Math.PI,0); ctx.fill();
+  ctx.fillStyle = '#6b9a88'; ctx.fillRect(x+w/2-7,-166,14,12); ctx.fillStyle = '#e3b341'; ctx.beginPath(); ctx.arc(x+w/2,-170,4,0,7); ctx.fill();
+  for (const gx of [x+12, x+w-12]){ ctx.beginPath(); ctx.moveTo(gx-7,-96); ctx.lineTo(gx,-120); ctx.lineTo(gx+7,-96); ctx.fill(); ctx.beginPath(); ctx.arc(gx,-122,3.5,0,7); ctx.fill(); }
+}
+function tree(x, seed){
+  ctx.strokeStyle = '#4d423a'; ctx.lineCap = 'round';
+  const br = (x,y,len,a,d,s) => { const x2 = x+Math.sin(a)*len, y2 = y-Math.cos(a)*len; ctx.lineWidth = d*1.5; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2); ctx.stroke();
+    if (d > 1){ const n = 2 + (h1(s) > .6 ? 1 : 0); for (let i=0;i<n;i++) br(x2,y2,len*(.64+.12*h1(s+i)),a+(i-(n-1)/2)*.62+(h1(s+i*7)-.5)*.3,d-1,s*3+i+1); }
+    else if (h1(s+9) > .7){ ctx.fillStyle = h1(s) > .5 ? '#d98a3a' : '#c9a23a'; ctx.beginPath(); ctx.arc(x2,y2,2.2,0,7); ctx.fill(); } };
+  br(x, 0, 36, 0, 4, seed);
+}
+function lamp(x){
+  ctx.strokeStyle = '#2f3340'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,-70); ctx.moveTo(x-11,-62); ctx.quadraticCurveTo(x,-74,x+11,-62); ctx.stroke();
+  ctx.fillStyle = '#fff4d6'; for (const [dx,dy] of [[-11,-66],[0,-77],[11,-66]]){ ctx.beginPath(); ctx.arc(x+dx,dy,5,0,7); ctx.fill(); }
+}
+function spectrumH(x, w){ const g = ctx.createLinearGradient(x,0,x+w,0); SPEC.forEach((c,i)=>g.addColorStop(i/4,c)); return g; }
+function gantry(x, gy, word){
+  ctx.fillStyle = '#2f3340'; ctx.fillRect(x,gy-150,6,146); ctx.fillRect(x+176,gy-150,6,146);
+  ctx.fillStyle = '#182033'; ctx.fillRect(x-4,gy-156,190,34); ctx.fillStyle = spectrumH(x-4,190); ctx.fillRect(x-4,gy-122,190,6);
+  ctx.fillStyle = '#fff'; ctx.font = 'italic 800 26px "Barlow Condensed","Arial Narrow",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(word, x+91, gy-138);
+}
+function holder(x, gy, i){
+  const j = reduce ? 0 : Math.abs(Math.sin(S.t*6 + i))*6, y = gy - 8 - j;
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#27324d'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x-7,y-44); ctx.lineTo(x-16,y-70); ctx.moveTo(x+7,y-44); ctx.lineTo(x+16,y-70); ctx.stroke();
+  ctx.fillStyle = '#27324d'; ctx.beginPath(); ctx.roundRect(x-10,y-50,20,44,7); ctx.fill();
+  ctx.fillStyle = '#c69472'; ctx.beginPath(); ctx.arc(x,y-58,7.5,0,7); ctx.fill(); ctx.fillStyle = '#1b1411'; ctx.beginPath(); ctx.arc(x,y-60,8,Math.PI,0); ctx.fill();
+  ctx.save(); ctx.translate(x, y-90); ctx.rotate((i%2 ? .05 : -.06)); ctx.fillStyle = 'rgba(24,32,51,.25)'; ctx.fillRect(-52,-19,108,42);
+  ctx.fillStyle = '#d9b98b'; ctx.fillRect(-54,-22,108,42); ctx.fillStyle = '#2a2018'; ctx.font = '700 21px Caveat,"Bradley Hand",cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(NOTES[i][0], 0, 0); ctx.restore();
+}
+
+function draw(){
+  const gy = S.gy, pr = clamp(S.dist/10, 0, 1), cam = S.dist*PXKM, rx = W*.3;
+  const k = clamp((gy-150)/200, .6, 1.6);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const g = ctx.createLinearGradient(0,0,0,gy); g.addColorStop(0, mix('#5f86bf','#7ab0e8',pr)); g.addColorStop(1, mix('#f6cfae','#e4eef8',pr));
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,gy+2);
+  const sx = W*.82, sy = gy - 70*k - pr*110*k, rg = ctx.createRadialGradient(sx,sy,4,sx,sy,130);
+  rg.addColorStop(0,'rgba(255,246,220,.95)'); rg.addColorStop(.16,'rgba(255,238,204,.5)'); rg.addColorStop(1,'rgba(255,238,204,0)');
+  ctx.fillStyle = rg; ctx.fillRect(sx-135,sy-135,270,270);
+
+  // far skyline
+  ctx.save(); ctx.translate(0, gy-16); ctx.scale(k,k);
+  const fs = cam*.15/k;
+  for (const b of far){ const x = b.x - fs; if (x + b.w < -10 || x > W/k + 10) continue; haussmann(b, x); }
+  const lx = (W*.52 - cam*.15)/k - 105; if (lx > -420 && lx < W/k + 220) louvre(lx);
+  const ox = (W*.62 + (10*PXKM - cam)*.15)/k - 125; if (ox > -280 && ox < W/k + 40) opera(ox);
+  ctx.restore();
+  const hz = ctx.createLinearGradient(0, gy-16-200*k, 0, gy-16); hz.addColorStop(0,'rgba(236,222,214,0)'); hz.addColorStop(1,'rgba(236,222,214,.34)'); ctx.fillStyle = hz; ctx.fillRect(0, gy-16-200*k, W, 200*k);
+
+  // mid: Rivoli arcades, then plane trees and lamps
+  const ms = cam*.5;
+  ctx.save(); ctx.translate(0, gy-6); ctx.scale(k,k);
+  const a0 = -420 - ms/k, a1 = 1900/k - ms/k;
+  if (a1 > -10){
+    ctx.fillStyle = '#c2b7a5'; ctx.fillRect(a0, -108, a1-a0, 108); ctx.fillStyle = '#ada290'; ctx.fillRect(a0, -112, a1-a0, 5); ctx.fillRect(a0,-66,a1-a0,3);
+    const first = Math.floor((-a0 - 20)/58);
+    for (let i=Math.max(0,first); ; i++){ const x = a0 + 14 + i*58; if (x > Math.min(a1-44, W/k+10)) break;
+      ctx.fillStyle = '#57525c'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,-38); ctx.arc(x+18,-38,18,Math.PI,0); ctx.lineTo(x+36,0); ctx.fill();
+      ctx.fillStyle = 'rgba(58,64,84,.4)'; ctx.fillRect(x+12,-98,11,22); }
+  }
+  ctx.restore();
+  for (let i = Math.floor((ms-80)/205); i*205 - ms < W + 80; i++){
+    const m = i*205 + h1(i)*70; if (m < 1960) continue; const x = m - ms;
+    ctx.save(); ctx.translate(x, gy-6); ctx.scale(k,k); tree(0, i+11); ctx.restore();
+  }
+  for (let i = Math.floor((ms-40)/340); i*340 - ms < W + 40; i++){
+    const m = i*340 + 120; if (m < 1990) continue; ctx.save(); ctx.translate(m - ms, gy-6); ctx.scale(k,k); lamp(0); ctx.restore();
+  }
+
+  // sidewalk, crowd, pancartes, signage
+  ctx.fillStyle = '#b9b4ad'; ctx.fillRect(0, gy-10, W, 12);
+  for (let i = Math.floor((cam-rx-40)/64); i*64 - cam + rx < W + 40; i++){
+    if (h1(i+5) < .45) continue; const x = i*64 + h1(i)*30 - cam + rx, hh = 34 + h1(i+2)*10;
+    ctx.fillStyle = TEES[i%7 < 0 ? 0 : (i%7+7)%7]; ctx.beginPath(); ctx.roundRect(x-8, gy-8-hh, 16, hh, 6); ctx.fill();
+    ctx.fillStyle = SKINS[((i%4)+4)%4]; ctx.beginPath(); ctx.arc(x, gy-14-hh, 6.5, 0, 7); ctx.fill();
+  }
+  const sxw = wx => wx - cam + rx;
+  let x0 = sxw(-112); if (x0 > -220 && x0 < W + 20) gantry(x0, gy, 'DÉPART');
+  x0 = sxw(10*PXKM - 60); if (x0 > -220 && x0 < W + 20) gantry(x0, gy, 'ARRIVÉE');
+  for (let n=1;n<=9;n++){ const x = sxw(n*PXKM); if (x < -60 || x > W + 20) continue;
+    ctx.fillStyle = '#2f3340'; ctx.fillRect(x-2, gy-150, 4, 146);
+    const gr = ctx.createLinearGradient(0,gy-150,0,gy-40); SPEC.slice().reverse().forEach((c,i)=>gr.addColorStop(i/4,c)); ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.moveTo(x+2,gy-150); ctx.quadraticCurveTo(x+40,gy-146,x+38,gy-112); ctx.lineTo(x+32,gy-44); ctx.lineTo(x+2,gy-38); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 30px "Barlow Condensed","Arial Narrow",sans-serif'; ctx.fillText(n, x+19, gy-104);
+    ctx.font = '600 12px "Barlow Condensed","Arial Narrow",sans-serif'; ctx.fillText('KM', x+18, gy-82);
+  }
+  x0 = sxw(5*PXKM + 90); if (x0 > -140 && x0 < W + 20){
+    ctx.fillStyle = '#182033'; ctx.fillRect(x0+8, gy-92, 84, 22); ctx.fillStyle = '#fff'; ctx.font = '800 16px "Barlow Condensed","Arial Narrow",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('RAVITO', x0+50, gy-80);
+    ctx.fillStyle = '#2f3340'; ctx.fillRect(x0+12,gy-70,3,30); ctx.fillRect(x0+85,gy-70,3,30);
+  }
+  for (let i=0;i<NOTES.length;i++){ const x = sxw((i+.5)*PXKM + 150); if (x > -70 && x < W + 70) holder(x, gy, i); }
+  // barriers
+  for (let i = Math.floor((cam-rx)/110) - 1; i*110 - cam + rx < W; i++){
+    const x = i*110 - cam + rx;
+    if (((i%3)+3)%3 === 1){ ctx.fillStyle = spectrumH(x, 104); ctx.fillRect(x, gy-34, 104, 26); }
+    else { ctx.strokeStyle = '#8f98a8'; ctx.lineWidth = 2; ctx.strokeRect(x+1, gy-33, 102, 25); ctx.beginPath(); for (let b=1;b<8;b++){ ctx.moveTo(x+1+b*12.75, gy-33); ctx.lineTo(x+1+b*12.75, gy-8); } ctx.stroke(); }
+    ctx.fillStyle = '#6f7888'; ctx.fillRect(x+6, gy-8, 3, 8); ctx.fillRect(x+95, gy-8, 3, 8);
+  }
+  if (x0 > -140 && x0 < W + 20){ ctx.fillStyle = '#f4f6fa'; ctx.fillRect(x0, gy-44, 100, 36); ctx.fillStyle = '#d5dbe6'; ctx.fillRect(x0, gy-44, 100, 4);
+    for (let c=0;c<7;c++){ ctx.fillStyle = c%2 ? '#19b36b' : '#fff'; ctx.strokeStyle = '#9aa7be'; ctx.lineWidth = 1; ctx.fillRect(x0+8+c*13, gy-53, 8, 9); ctx.strokeRect(x0+8+c*13, gy-53, 8, 9); } }
+
+  // road
+  ctx.fillStyle = '#484b56'; ctx.fillRect(0, gy, W, H-gy); ctx.fillStyle = '#d9d5cc'; ctx.fillRect(0, gy, W, 3);
+  ctx.fillStyle = 'rgba(255,255,255,.45)'; for (let x = -(cam%96) - 96; x < W + 96; x += 96) ctx.fillRect(x, gy+72, 46, 4);
+  const fx = sxw(10*PXKM); if (fx > -30 && fx < W + 30){ for (let r=0;r<12;r++) for (let c=0;c<2;c++){ ctx.fillStyle = (r+c)%2 ? '#fff' : '#182033'; ctx.fillRect(fx-10+c*10, gy+3+r*10, 10, 10); } }
+
+  // runners
+  const rs = clamp(H/640, .9, 1.3), fy = gy + 54;
+  const live = S.npc.filter(n => n.live && sxw(n.wx) > -60 && sxw(n.wx) < W + 60);
+  for (const n of live) if (n.dy < 0) runner(sxw(n.wx), fy + n.dy, n.ph, rs*.94, npcPal(n.seed));
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(rx, fy+3, 20*rs, 4*rs, 0, 0, 7); ctx.fill();
+  runner(rx, fy, S.phase, rs, NEHU, S.mode === 'title' ? 'kick' : S.mode === 'fin' ? 'up' : null);
+  for (const n of live) if (n.dy >= 0) runner(sxw(n.wx), fy + n.dy, n.ph, rs, npcPal(n.seed));
+  if (S.mode === 'run' && S.stitch > 0){ ctx.fillStyle = '#fff'; ctx.font = '700 22px Caveat,cursive'; ctx.textAlign = 'center'; ctx.fillText('ouf', rx+26, fy-104*rs); }
+
+  for (const c of S.conf){ if (c.y > H) continue; ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.r); ctx.fillStyle = c.c; ctx.fillRect(-c.s/2,-c.s/4,c.s,c.s/2); ctx.restore(); }
+}
+
+// ---- loop ----
+function resize(){
+  const r = app.getBoundingClientRect(); W = Math.max(280, r.width); H = Math.max(360, r.height);
+  DPR = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+}
+new ResizeObserver(resize).observe(app); resize();
+S.gy = Math.max(190, H - ($('bib').offsetHeight + 30) - 88);
+let last = 0, paused = false;
+document.addEventListener('visibilitychange', () => { paused = document.hidden; last = 0; if (paused) setHold(false); });
+function frame(ts){
+  if (!paused){ const dt = last ? Math.min(.05, (ts-last)/1000) : 0; last = ts;
+    try { step(dt); hudSync(); draw(); } catch (err) { window.__dixErr = String(err && err.stack || err); } }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__dix = { S, step, start, paint(){ hudSync(); draw(); } };
+})();
+</script>
+
+</body>
+</html>
